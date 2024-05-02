@@ -1,0 +1,63 @@
+import time
+import webbrowser
+import os
+from datetime import datetime
+import holidays
+import pyautogui
+import RPi.GPIO as GPIO
+
+# Set the URL of the website you want to open
+website_url = 'https://vignan-dynamic-college-web-platform.netlify.app'
+
+# Set the times to open and close the website (24-hour format)
+open_time = "08:00"
+close_time = "18:00"
+
+# Set GPIO pin for output
+gpio_pin = 18
+
+# Initialize GPIO
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(gpio_pin, GPIO.OUT)
+
+# Flag to indicate whether supply should be given
+supply_active = False
+
+def open_website():
+    webbrowser.open(website_url, new=2)  # Open website in a new browser tab
+    time.sleep(5)  # Wait for the page to load (adjust this delay as needed)
+    pyautogui.press('f11')  # Simulate pressing F11 key to enter fullscreen mode
+
+def close_website():
+    os.system("pkill chromium")
+    raise Exception("Script terminated after closing website")
+
+holiday_list = holidays.India()
+
+# Main loop
+try:
+    while True:
+        now = datetime.now()
+        current_time = now.strftime("%H:%M")
+
+        # Check if current time is within the specified range
+        if open_time <= current_time <= close_time:
+            # If within the range, continuously supply GPIO and open website
+            GPIO.output(gpio_pin, GPIO.LOW)  # Set pin to LOW for supply
+            if not supply_active:
+                open_website()
+                supply_active = True
+        else:
+            # If not within the range, stop supplying GPIO and close website
+            if supply_active:
+                GPIO.output(gpio_pin, GPIO.HIGH)  # Set pin to HIGH to stop supply
+                close_website()
+                supply_active = False
+        
+        time.sleep(60)  # Check every minute
+except Exception as e:
+    print(e)
+
+# Cleanup GPIO
+GPIO.cleanup()
